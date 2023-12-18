@@ -8,7 +8,7 @@ const skill = (skill)=>{
       <div>
          <div className='grid grid-cols-2 mt-3 gap-x-20 gap-y-3'>
             {skill.map((data)=>(
-               <div className='flex '>
+               <div className='flex ' class='flex-column '>
                   <table >
                      <tr>
                         <td className='flex justify-between text-lg'>
