@@ -11,7 +11,7 @@ export default function Home() {
    return (
       <div className='flex justify-between p-16 ml-32 mr-32'>
          <div className='grid items-center justify-center pl-24 m-5 text-white '>
-            <div className='text-3xl'>Hello, I'm</div>
+            <div className='text-3xl'>Hello Guys, I'm</div>
             
             <div className='-mt-5 font-semibold text-7xl'>
                <div>H.K. Damith </div>
@@ -36,7 +36,7 @@ export default function Home() {
             </div>
             <a href={CV} className='flex gap-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold rounded w-[8vw] items-center justify-items-center justify-center h-10 outline outline-offset-2 outline-cyan-500'>
                <BiSolidDownload fontSize={25}/>
-               <span>Download CV</span>
+               <span>See My CV</span>
             </a>
          </div>
          <div className='w-[30vw] md:shrink-0'>
