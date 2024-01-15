@@ -1,15 +1,24 @@
 import React from 'react'
 
 
-import {BiSolidDownload} from 'react-icons/bi'
+// import {BiSolidDownload} from 'react-icons/bi'
 
-import Me from '../documents/image/me.png'
-import CV from '../documents/cv_hk_damith_deshan.pdf'
-import {links} from '../data/SocialMedia'
+// import Me from '../documents/image/me.png'
+// import CV from '../documents/cv_hk_damith_deshan.pdf'
+// import {links} from '../data/SocialMedia'
 
 export default function Home() {
    return (
-      <div className='flex justify-between p-16 ml-32 mr-32'>
+      <div className = "row flex" >
+         <div className="col-4 w-100">Damith</div>
+         <div className="col-4 w-100">Damith</div>
+      </div>
+   )
+}
+
+
+
+/* <div className='flex justify-between p-16 ml-32 mr-32'>
          <div className='grid items-center justify-center pl-24 m-5 text-white '>
             <div className='text-3xl'>Hello Guys, I'm</div>
             
@@ -42,6 +51,4 @@ export default function Home() {
          <div className='w-[30vw] md:shrink-0'>
             <img src={Me} draggable='false' alt='Damith_Deshan'/>
          </div>
-      </div>
-   )
-}
+      </div> */
