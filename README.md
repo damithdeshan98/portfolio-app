@@ -1,41 +1,143 @@
-# Getting Started with Create React App
+# Portfolio Website — React + Firebase
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A personal portfolio with a **public site** and a login-protected **admin panel**, in a
+single React (Vite) app. The UI matches the original dark / teal "constellation" design
+(Syne · DM Mono · Outfit, custom cursor, animated hero).
 
-## Available Scripts
+- `/` … `/contact` → Public site (read-only, no login)
+- `/admin/*` → Admin panel (Firebase Auth login required)
 
-In the project directory, you can run:
+## Tech stack
 
-### `npm start`
+| Concern        | Choice                                   |
+| -------------- | ---------------------------------------- |
+| Frontend       | React 18 + Vite + React Router 6         |
+| Styling        | Tailwind CSS + ported design-system CSS  |
+| Database       | Firebase Firestore                       |
+| Auth           | Firebase Authentication (Email/Password) |
+| File storage   | Firebase Storage (CV, project/cert images) |
+| Hosting / CI   | Firebase Hosting + GitHub Actions        |
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+The public site ships with **seed content** (`src/data/seed.js`) so it looks complete
+before the database is populated. Once Firestore has data, the live data takes over.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+---
 
-### `npm test`
+## 1. Local setup
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```bash
+npm install
+cp .env.example .env   # then fill in your Firebase web config
+npm run dev            # http://localhost:5173
+```
 
-### `npm run build`
+> The `VITE_` prefix is required by Vite for env vars to reach the browser.
+> These are frontend keys and are safe to expose — the real protection is the
+> Firestore/Storage **security rules**.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 2. Firebase project setup
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+In the [Firebase Console](https://console.firebase.google.com):
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+1. Create a project.
+2. **Authentication → Sign-in method →** enable **Email/Password**.
+3. **Authentication → Users →** add your admin user (email + password). This is your login.
+4. **Firestore Database →** Create database (Production mode).
+5. **Storage →** Get started.
+6. **Project Settings →** register a Web app, copy the config into `.env`.
 
-### `npm run eject`
+### Seed the database
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Log in at `/admin/login`, open the **Dashboard**, and click **Import seed content** to
+push the bundled default data into Firestore. After that, edit everything from the admin
+panel.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## 3. Firestore data model
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+- `profile/main` — name, title, about, contact, social links, `cvUrl`, `profileImageUrl`
+- `projects` — title, description, techStack[], imageUrl, liveUrl, githubUrl, order
+- `experience` — role, company, dates, bullets[], order
+- `skills` — name, category (`Core`/`Tools`), level (0–100), icon, order
+- `qualifications` — degree, institution, year, description, order
+- `certificates` — title, issuer, credentialUrl, imageUrl, order
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## 4. Storage layout
 
+```
+/cv/cv.pdf                  current CV (overwritten on update)
+/projects/{file}            project images
+/certificates/{file}        certificate images
+/profile/{file}             profile picture
+```
+
+## 5. Security rules
+
+`firestore.rules` and `storage.rules` both allow public **read** and authenticated-only
+**write** — visitors view everything, only the logged-in admin can edit.
+
+Deploy them with:
+
+```bash
+firebase deploy --only firestore,storage
+```
+
+## 6. Build & deploy
+
+```bash
+npm run build           # outputs to dist/
+firebase login
+firebase init           # choose Hosting (+ Firestore, Storage for rules)
+                        #   public dir: dist
+                        #   single-page app: YES   (required for React Router)
+firebase deploy
+```
+
+Live URL: `https://<your-project>.web.app`
+
+> The `rewrites` rule in `firebase.json` is mandatory — without it, routes like
+> `/admin` 404 on refresh.
+
+## 7. CI/CD (GitHub Actions)
+
+`.github/workflows/deploy.yml` builds and deploys on every push to `main`.
+
+The easiest way to wire it up:
+
+```bash
+firebase init hosting:github
+```
+
+This connects the repo, creates the workflow, and sets the
+`FIREBASE_SERVICE_ACCOUNT` secret automatically.
+
+**Repo secrets to add** (Settings → Secrets and variables → Actions):
+
+- All six `VITE_FIREBASE_*` values (needed at build time).
+- `FIREBASE_SERVICE_ACCOUNT` — service-account JSON
+  (Firebase Console → Project Settings → Service accounts → Generate new private key).
+
+To also deploy rules from CI, run `firebase deploy --only hosting,firestore,storage`
+with the Firebase CLI, or deploy rules manually the few times they change.
+
+---
+
+## Project structure
+
+```
+src/
+├── firebase/config.js        Firebase init
+├── context/
+│   ├── AuthContext.jsx       login / logout / currentUser
+│   └── DataContext.jsx       loads all collections (seed fallback)
+├── components/
+│   ├── Navbar, Footer, Loader, ProtectedRoute
+│   ├── CustomCursor, Constellation, StatsBand
+│   └── sections/             Hero, About, Experience, Projects, Skills, Education, Certificates, Contact
+├── layouts/                  PublicLayout, AdminLayout
+├── pages/
+│   ├── public/               Home + one page per section
+│   └── admin/                Login, Dashboard, Manage* CRUD pages
+├── services/firestoreService.js   getAll/add/update/remove/uploadFile
+├── hooks/                    useReveal, useCollectionManager
+└── data/seed.js              bundled default content
+```
