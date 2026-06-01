@@ -11,7 +11,7 @@ export default function ManageSkills() {
   const [editingId, setEditingId] = useState(null);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
-  const startEdit = (s) => { setEditingId(s.id); setForm({ ...EMPTY, ...s }); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const startEdit = (s) => { setEditingId(s.id); setForm({ ...EMPTY, ...s }); };
   const reset = () => { setEditingId(null); setForm(EMPTY); };
 
   const onSubmit = async (e) => {
@@ -20,6 +20,11 @@ export default function ManageSkills() {
     const data = { ...form, level: Number(form.level) || 0, order: Number(form.order) || 0 };
     const ok = await save(editingId, data);
     if (ok) reset();
+  };
+
+  const onDelete = async (id) => {
+    await destroy(id);
+    if (id === editingId) reset();
   };
 
   const isTool = form.category === "Tools";
@@ -32,11 +37,42 @@ export default function ManageSkills() {
       </div>
       {message && <div className={`alert alert-${message.type}`}>{message.text}</div>}
 
-      <form className="card" onSubmit={onSubmit}>
-        <div className="card-title">
-          <i className="fas fa-layer-group" /> {editingId ? "Edit skill" : "Add skill"}
+      <div className="manage-split">
+        <div className="card manage-list-pane">
+          <div className="card-title manage-list-head">
+            <span><i className="fas fa-list" /> Skills ({rows.length})</span>
+            <button type="button" className="btn-primary btn-sm" onClick={reset}>
+              <i className="fas fa-plus" /> New
+            </button>
+          </div>
+          {loading ? (
+            <Loader />
+          ) : (
+            <div className="admin-list">
+              {rows.map((s) => (
+                <div className={`admin-row selectable${s.id === editingId ? " selected" : ""}`} key={s.id}>
+                  <div className="admin-row-main" onClick={() => startEdit(s)} role="button" tabIndex={0}>
+                    <div className="admin-row-title">
+                      {s.icon && <i className={s.icon} style={{ marginRight: "0.5rem", color: "var(--teal)" }} />}
+                      {s.name}
+                    </div>
+                    <div className="admin-row-sub">{s.category}{s.category !== "Tools" ? ` · ${s.level}%` : ""}</div>
+                  </div>
+                  <div className="admin-row-actions">
+                    <button className="icon-btn danger" onClick={() => onDelete(s.id)} title="Delete"><i className="fas fa-trash" /></button>
+                  </div>
+                </div>
+              ))}
+              {!rows.length && <p className="dash-card-desc">No skills yet.</p>}
+            </div>
+          )}
         </div>
-        <div className="form-grid">
+
+        <form className="card manage-form-pane" onSubmit={onSubmit}>
+          <div className="card-title">
+            <i className="fas fa-layer-group" /> {editingId ? "Edit skill" : "Add skill"}
+          </div>
+          <div className="form-grid">
           <div className="form-group">
             <label>Name *</label>
             <input value={form.name} onChange={(e) => set("name", e.target.value)} />
@@ -65,38 +101,13 @@ export default function ManageSkills() {
             <input type="number" value={form.order} onChange={(e) => set("order", e.target.value)} />
           </div>
         </div>
-        <div className="form-actions">
-          <button className="btn-primary btn-sm" type="submit" disabled={saving}>
-            {saving ? "Saving…" : editingId ? "Update" : "Add"}
-          </button>
-          {editingId && <button type="button" className="btn-ghost" onClick={reset}>Cancel</button>}
-        </div>
-      </form>
-
-      <div className="card">
-        <div className="card-title"><i className="fas fa-list" /> Skills ({rows.length})</div>
-        {loading ? (
-          <Loader />
-        ) : (
-          <div className="admin-list">
-            {rows.map((s) => (
-              <div className="admin-row" key={s.id}>
-                <div className="admin-row-main">
-                  <div className="admin-row-title">
-                    {s.icon && <i className={s.icon} style={{ marginRight: "0.5rem", color: "var(--teal)" }} />}
-                    {s.name}
-                  </div>
-                  <div className="admin-row-sub">{s.category}{s.category !== "Tools" ? ` · ${s.level}%` : ""}</div>
-                </div>
-                <div className="admin-row-actions">
-                  <button className="icon-btn" onClick={() => startEdit(s)}><i className="fas fa-pen" /></button>
-                  <button className="icon-btn danger" onClick={() => destroy(s.id)}><i className="fas fa-trash" /></button>
-                </div>
-              </div>
-            ))}
-            {!rows.length && <p className="dash-card-desc">No skills yet.</p>}
+          <div className="form-actions">
+            <button className="btn-primary btn-sm" type="submit" disabled={saving}>
+              {saving ? "Saving…" : editingId ? "Update" : "Add"}
+            </button>
+            {editingId && <button type="button" className="btn-ghost" onClick={reset}>Cancel</button>}
           </div>
-        )}
+        </form>
       </div>
     </>
   );

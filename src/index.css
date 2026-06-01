@@ -502,6 +502,23 @@ input[type="file"] { padding: 0.5rem; font-size: 0.8rem; }
 .icon-btn:hover { border-color: var(--teal); color: var(--teal); }
 .icon-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
 
+.status-pill { display: inline-block; margin-left: 0.5rem; padding: 0.1rem 0.5rem; border-radius: 999px; font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; vertical-align: middle; }
+.status-pill.active { background: rgba(0,229,204,0.12); border: 1px solid rgba(0,229,204,0.35); color: var(--teal); }
+.status-pill.inactive { background: rgba(255,84,112,0.1); border: 1px solid rgba(255,84,112,0.3); color: var(--danger); }
+
+/* Two-pane manage layout: list on the left, editor on the right. */
+.manage-split { display: grid; grid-template-columns: minmax(300px, 380px) 1fr; gap: 1.5rem; align-items: start; }
+.manage-split .card { margin-bottom: 0; }
+.manage-list-pane { position: sticky; top: 2rem; max-height: calc(100vh - 4rem); overflow-y: auto; }
+.manage-list-head { justify-content: space-between; }
+.manage-list-head span { display: flex; align-items: center; gap: 0.6rem; }
+.admin-row.selectable .admin-row-main { cursor: pointer; }
+.admin-row.selected { border-color: var(--teal); box-shadow: 0 0 0 1px var(--teal) inset; }
+@media (max-width: 900px) {
+  .manage-split { grid-template-columns: 1fr; }
+  .manage-list-pane { position: static; max-height: none; }
+}
+
 .alert { padding: 0.8rem 1rem; border-radius: 8px; font-size: 0.82rem; margin-bottom: 1.2rem; font-family: var(--font-mono); }
 .alert-success { background: rgba(46,230,166,0.1); border: 1px solid rgba(46,230,166,0.3); color: var(--success); }
 .alert-error { background: rgba(255,84,112,0.1); border: 1px solid rgba(255,84,112,0.3); color: var(--danger); }

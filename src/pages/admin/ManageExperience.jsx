@@ -22,7 +22,6 @@ export default function ManageExperience() {
       ...x,
       bullets: Array.isArray(x.bullets) ? x.bullets.join("\n") : x.bullets || "",
     });
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const reset = () => { setEditingId(null); setForm(EMPTY); };
@@ -39,19 +38,52 @@ export default function ManageExperience() {
     if (ok) reset();
   };
 
+  const onDelete = async (id) => {
+    await destroy(id);
+    if (id === editingId) reset();
+  };
+
   return (
     <>
       <div className="admin-header">
         <h1 className="admin-title">Manage Experience</h1>
-        <p className="admin-subtitle">Your professional work history timeline.</p>
+        <p className="admin-subtitle">Select an entry to edit it, or add a new one.</p>
       </div>
       {message && <div className={`alert alert-${message.type}`}>{message.text}</div>}
 
-      <form className="card" onSubmit={onSubmit}>
-        <div className="card-title">
-          <i className="fas fa-briefcase" /> {editingId ? "Edit experience" : "Add experience"}
+      <div className="manage-split">
+        <div className="card manage-list-pane">
+          <div className="card-title manage-list-head">
+            <span><i className="fas fa-list" /> Entries ({rows.length})</span>
+            <button type="button" className="btn-primary btn-sm" onClick={reset}>
+              <i className="fas fa-plus" /> New
+            </button>
+          </div>
+          {loading ? (
+            <Loader />
+          ) : (
+            <div className="admin-list">
+              {rows.map((x) => (
+                <div className={`admin-row selectable${x.id === editingId ? " selected" : ""}`} key={x.id}>
+                  <div className="admin-row-main" onClick={() => startEdit(x)} role="button" tabIndex={0}>
+                    <div className="admin-row-title">{x.role}</div>
+                    <div className="admin-row-sub">{x.company} · {x.period || `${x.startDate} — ${x.endDate}`}</div>
+                  </div>
+                  <div className="admin-row-actions">
+                    <button className="icon-btn danger" onClick={() => onDelete(x.id)} title="Delete"><i className="fas fa-trash" /></button>
+                  </div>
+                </div>
+              ))}
+              {!rows.length && <p className="dash-card-desc">No experience entries yet.</p>}
+            </div>
+          )}
         </div>
-        <div className="form-grid">
+
+        <form className="card manage-form-pane" onSubmit={onSubmit}>
+          <div className="card-title">
+            <i className="fas fa-briefcase" /> {editingId ? "Edit experience" : "Add experience"}
+          </div>
+          <div className="form-grid">
           <div className="form-group">
             <label>Role *</label>
             <input value={form.role} onChange={(e) => set("role", e.target.value)} />
@@ -85,35 +117,13 @@ export default function ManageExperience() {
             <input type="number" value={form.order} onChange={(e) => set("order", e.target.value)} />
           </div>
         </div>
-        <div className="form-actions">
-          <button className="btn-primary btn-sm" type="submit" disabled={saving}>
-            {saving ? "Saving…" : editingId ? "Update" : "Add"}
-          </button>
-          {editingId && <button type="button" className="btn-ghost" onClick={reset}>Cancel</button>}
-        </div>
-      </form>
-
-      <div className="card">
-        <div className="card-title"><i className="fas fa-list" /> Entries ({rows.length})</div>
-        {loading ? (
-          <Loader />
-        ) : (
-          <div className="admin-list">
-            {rows.map((x) => (
-              <div className="admin-row" key={x.id}>
-                <div className="admin-row-main">
-                  <div className="admin-row-title">{x.role}</div>
-                  <div className="admin-row-sub">{x.company} · {x.period || `${x.startDate} — ${x.endDate}`}</div>
-                </div>
-                <div className="admin-row-actions">
-                  <button className="icon-btn" onClick={() => startEdit(x)}><i className="fas fa-pen" /></button>
-                  <button className="icon-btn danger" onClick={() => destroy(x.id)}><i className="fas fa-trash" /></button>
-                </div>
-              </div>
-            ))}
-            {!rows.length && <p className="dash-card-desc">No experience entries yet.</p>}
+          <div className="form-actions">
+            <button className="btn-primary btn-sm" type="submit" disabled={saving}>
+              {saving ? "Saving…" : editingId ? "Update" : "Add"}
+            </button>
+            {editingId && <button type="button" className="btn-ghost" onClick={reset}>Cancel</button>}
           </div>
-        )}
+        </form>
       </div>
     </>
   );
