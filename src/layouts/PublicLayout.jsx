@@ -4,10 +4,14 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import CustomCursor from "../components/CustomCursor";
 import { usePortfolio } from "../context/DataContext";
+import useVisitTracker from "../hooks/useVisitTracker";
 
 export default function PublicLayout() {
   const { profile } = usePortfolio();
   const location = useLocation();
+
+  // Log this visitor's session (IP, arrival, close, duration) for the admin panel.
+  useVisitTracker();
 
   // Honour "/#section" links — scroll to the target once the page renders.
   useEffect(() => {
