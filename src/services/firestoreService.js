@@ -2,6 +2,7 @@ import {
   collection,
   doc,
   getDocs,
+  getDocsFromCache,
   getDoc,
   addDoc,
   updateDoc,
@@ -34,6 +35,25 @@ export async function getAll(collectionName, orderField = "order") {
     snapshot = await getDocs(colRef);
   }
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+// Read a collection straight from the local cache (no network). Returns null
+// when nothing is cached yet, so callers can fall back to a server fetch.
+export async function getAllFromCache(collectionName, orderField = "order") {
+  const colRef = collection(db, collectionName);
+  try {
+    let snapshot;
+    try {
+      snapshot = await getDocsFromCache(query(colRef, orderBy(orderField)));
+    } catch {
+      snapshot = await getDocsFromCache(colRef);
+    }
+    if (snapshot.empty) return null;
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+  } catch {
+    // Nothing in cache yet (first ever load).
+    return null;
+  }
 }
 
 // Get a single document by id.
