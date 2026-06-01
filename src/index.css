@@ -506,6 +506,15 @@ input[type="file"] { padding: 0.5rem; font-size: 0.8rem; }
 .status-pill.active { background: rgba(0,229,204,0.12); border: 1px solid rgba(0,229,204,0.35); color: var(--teal); }
 .status-pill.inactive { background: rgba(255,84,112,0.1); border: 1px solid rgba(255,84,112,0.3); color: var(--danger); }
 
+/* Data table (visitor log). */
+.data-table-wrap { overflow-x: auto; margin-top: 0.4rem; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+.data-table th { text-align: left; padding: 0.6rem 0.9rem; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text3); border-bottom: 1px solid var(--border); white-space: nowrap; }
+.data-table td { padding: 0.75rem 0.9rem; border-bottom: 1px solid var(--border); color: var(--text2); white-space: nowrap; }
+.data-table tbody tr:hover { background: var(--bg); }
+.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table .mono { font-family: var(--font-mono); color: var(--text); }
+
 /* Confirmation modal. */
 .modal-overlay {
   position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center;
