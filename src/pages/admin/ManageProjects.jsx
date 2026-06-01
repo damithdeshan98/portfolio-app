@@ -40,7 +40,8 @@ export default function ManageProjects() {
   };
 
   const onDelete = async (id) => {
-    await destroy(id);
+    const p = rows.find((r) => r.id === id);
+    await destroy(id, p ? `Delete "${p.title}"? This cannot be undone.` : undefined);
     if (id === editingId) reset();
   };
 
@@ -72,23 +73,13 @@ export default function ManageProjects() {
                   style={{ opacity: p.active === false ? 0.55 : 1 }}
                 >
                   <div className="admin-row-main" onClick={() => startEdit(p)} role="button" tabIndex={0}>
-                    <div className="admin-row-title">
-                      {p.title} {p.featured && "★"}
-                      <span className={`status-pill ${p.active === false ? "inactive" : "active"}`}>
+                    <div className="admin-row-title" style={{ display: "flex", alignItems: "center" }}>
+                      <span>{p.title} {p.featured && "★"}</span>
+                      <span className={`status-pill ${p.active === false ? "inactive" : "active"}`} style={{ marginLeft: "auto" }}>
                         {p.active === false ? "Inactive" : "Active"}
                       </span>
                     </div>
-                    <div className="admin-row-sub">{p.period} · {(p.techStack || []).join(", ")}</div>
-                  </div>
-                  <div className="admin-row-actions">
-                    <button
-                      className="icon-btn"
-                      onClick={() => save(p.id, { active: p.active === false })}
-                      title={p.active === false ? "Activate" : "Deactivate"}
-                    >
-                      <i className={`fas ${p.active === false ? "fa-eye-slash" : "fa-eye"}`} />
-                    </button>
-                    <button className="icon-btn danger" onClick={() => onDelete(p.id)} title="Delete"><i className="fas fa-trash" /></button>
+                    <div className="admin-row-sub">{p.period}</div>
                   </div>
                 </div>
               ))}
@@ -139,13 +130,19 @@ export default function ManageProjects() {
               <label>Project image URL (optional)</label>
               <input value={form.imageUrl} onChange={(e) => set("imageUrl", e.target.value)} placeholder="https://… or /image.jpg" />
             </div>
-            <div className="form-group" style={{ flexDirection: "row", alignItems: "center", gap: "0.6rem" }}>
-              <input id="featured" type="checkbox" style={{ width: "auto" }} checked={!!form.featured} onChange={(e) => set("featured", e.target.checked)} />
+            <div className="form-group toggle-row">
               <label htmlFor="featured" style={{ margin: 0 }}>Featured (wide card)</label>
+              <label className="switch">
+                <input id="featured" type="checkbox" checked={!!form.featured} onChange={(e) => set("featured", e.target.checked)} />
+                <span className="slider" />
+              </label>
             </div>
-            <div className="form-group" style={{ flexDirection: "row", alignItems: "center", gap: "0.6rem" }}>
-              <input id="active" type="checkbox" style={{ width: "auto" }} checked={form.active !== false} onChange={(e) => set("active", e.target.checked)} />
+            <div className="form-group toggle-row">
               <label htmlFor="active" style={{ margin: 0 }}>Active (visible on site)</label>
+              <label className="switch">
+                <input id="active" type="checkbox" checked={form.active !== false} onChange={(e) => set("active", e.target.checked)} />
+                <span className="slider" />
+              </label>
             </div>
           </div>
           <div className="form-actions">
@@ -153,6 +150,11 @@ export default function ManageProjects() {
               {saving ? "Saving…" : editingId ? "Update project" : "Add project"}
             </button>
             {editingId && <button type="button" className="btn-ghost" onClick={reset}>Cancel</button>}
+            {editingId && (
+              <button type="button" className="btn-danger" style={{ marginLeft: "auto" }} onClick={() => onDelete(editingId)}>
+                <i className="fas fa-trash" /> Delete
+              </button>
+            )}
           </div>
         </form>
       </div>
