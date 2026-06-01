@@ -4,7 +4,7 @@ import Loader from "../../components/Loader";
 
 const EMPTY = {
   title: "", issuer: "", issueDate: "", icon: "fas fa-certificate",
-  credentialUrl: "", imageUrl: "", order: 0,
+  credentialUrl: "", imageUrl: "", order: 0, active: true,
 };
 
 export default function ManageCertificates() {
@@ -27,7 +27,8 @@ export default function ManageCertificates() {
   };
 
   const onDelete = async (id) => {
-    await destroy(id);
+    const c = rows.find((r) => r.id === id);
+    await destroy(id, c ? `Delete "${c.title}"? This cannot be undone.` : undefined);
     if (id === editingId) reset();
   };
 
@@ -52,16 +53,22 @@ export default function ManageCertificates() {
           ) : (
             <div className="admin-list">
               {rows.map((c) => (
-                <div className={`admin-row selectable${c.id === editingId ? " selected" : ""}`} key={c.id}>
+                <div
+                  className={`admin-row selectable${c.id === editingId ? " selected" : ""}`}
+                  key={c.id}
+                  style={{ opacity: c.active === false ? 0.55 : 1 }}
+                >
                   <div className="admin-row-main" onClick={() => startEdit(c)} role="button" tabIndex={0}>
-                    <div className="admin-row-title">
-                      {c.icon && <i className={c.icon} style={{ marginRight: "0.5rem", color: "var(--teal)" }} />}
-                      {c.title}
+                    <div className="admin-row-title" style={{ display: "flex", alignItems: "center" }}>
+                      <span>
+                        {c.icon && <i className={c.icon} style={{ marginRight: "0.5rem", color: "var(--teal)" }} />}
+                        {c.title}
+                      </span>
+                      <span className={`status-pill ${c.active === false ? "inactive" : "active"}`} style={{ marginLeft: "auto" }}>
+                        {c.active === false ? "Inactive" : "Active"}
+                      </span>
                     </div>
                     <div className="admin-row-sub">{c.issuer}</div>
-                  </div>
-                  <div className="admin-row-actions">
-                    <button className="icon-btn danger" onClick={() => onDelete(c.id)} title="Delete"><i className="fas fa-trash" /></button>
                   </div>
                 </div>
               ))}
@@ -103,12 +110,24 @@ export default function ManageCertificates() {
             <label>Certificate image URL (optional)</label>
             <input value={form.imageUrl} onChange={(e) => set("imageUrl", e.target.value)} placeholder="https://… or /image.jpg" />
           </div>
+          <div className="form-group toggle-row">
+            <label htmlFor="active" style={{ margin: 0 }}>Active (visible on site)</label>
+            <label className="switch">
+              <input id="active" type="checkbox" checked={form.active !== false} onChange={(e) => set("active", e.target.checked)} />
+              <span className="slider" />
+            </label>
+          </div>
         </div>
           <div className="form-actions">
             <button className="btn-primary btn-sm" type="submit" disabled={saving}>
               {saving ? "Saving…" : editingId ? "Update" : "Add"}
             </button>
             {editingId && <button type="button" className="btn-ghost" onClick={reset}>Cancel</button>}
+            {editingId && (
+              <button type="button" className="btn-danger" style={{ marginLeft: "auto" }} onClick={() => onDelete(editingId)}>
+                <i className="fas fa-trash" /> Delete
+              </button>
+            )}
           </div>
         </form>
       </div>

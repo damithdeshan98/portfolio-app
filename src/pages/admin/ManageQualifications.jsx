@@ -4,7 +4,7 @@ import Loader from "../../components/Loader";
 
 const EMPTY = {
   degree: "", institution: "", location: "", year: "", yearTag: "",
-  description: "", icon: "fas fa-graduation-cap", primary: false, order: 0,
+  description: "", icon: "fas fa-graduation-cap", primary: false, order: 0, active: true,
 };
 
 export default function ManageQualifications() {
@@ -26,7 +26,8 @@ export default function ManageQualifications() {
   };
 
   const onDelete = async (id) => {
-    await destroy(id);
+    const q = rows.find((r) => r.id === id);
+    await destroy(id, q ? `Delete "${q.degree}"? This cannot be undone.` : undefined);
     if (id === editingId) reset();
   };
 
@@ -51,13 +52,19 @@ export default function ManageQualifications() {
           ) : (
             <div className="admin-list">
               {rows.map((q) => (
-                <div className={`admin-row selectable${q.id === editingId ? " selected" : ""}`} key={q.id}>
+                <div
+                  className={`admin-row selectable${q.id === editingId ? " selected" : ""}`}
+                  key={q.id}
+                  style={{ opacity: q.active === false ? 0.55 : 1 }}
+                >
                   <div className="admin-row-main" onClick={() => startEdit(q)} role="button" tabIndex={0}>
-                    <div className="admin-row-title">{q.degree} {q.primary && "★"}</div>
+                    <div className="admin-row-title" style={{ display: "flex", alignItems: "center" }}>
+                      <span>{q.degree} {q.primary && "★"}</span>
+                      <span className={`status-pill ${q.active === false ? "inactive" : "active"}`} style={{ marginLeft: "auto" }}>
+                        {q.active === false ? "Inactive" : "Active"}
+                      </span>
+                    </div>
                     <div className="admin-row-sub">{q.institution} · {q.year}</div>
-                  </div>
-                  <div className="admin-row-actions">
-                    <button className="icon-btn danger" onClick={() => onDelete(q.id)} title="Delete"><i className="fas fa-trash" /></button>
                   </div>
                 </div>
               ))}
@@ -103,9 +110,19 @@ export default function ManageQualifications() {
             <label>Display order</label>
             <input type="number" value={form.order} onChange={(e) => set("order", e.target.value)} />
           </div>
-          <div className="form-group" style={{ flexDirection: "row", alignItems: "center", gap: "0.6rem" }}>
-            <input id="primary" type="checkbox" style={{ width: "auto" }} checked={!!form.primary} onChange={(e) => set("primary", e.target.checked)} />
+          <div className="form-group toggle-row">
             <label htmlFor="primary" style={{ margin: 0 }}>Primary (wide card)</label>
+            <label className="switch">
+              <input id="primary" type="checkbox" checked={!!form.primary} onChange={(e) => set("primary", e.target.checked)} />
+              <span className="slider" />
+            </label>
+          </div>
+          <div className="form-group toggle-row">
+            <label htmlFor="active" style={{ margin: 0 }}>Active (visible on site)</label>
+            <label className="switch">
+              <input id="active" type="checkbox" checked={form.active !== false} onChange={(e) => set("active", e.target.checked)} />
+              <span className="slider" />
+            </label>
           </div>
         </div>
           <div className="form-actions">
@@ -113,6 +130,11 @@ export default function ManageQualifications() {
               {saving ? "Saving…" : editingId ? "Update" : "Add"}
             </button>
             {editingId && <button type="button" className="btn-ghost" onClick={reset}>Cancel</button>}
+            {editingId && (
+              <button type="button" className="btn-danger" style={{ marginLeft: "auto" }} onClick={() => onDelete(editingId)}>
+                <i className="fas fa-trash" /> Delete
+              </button>
+            )}
           </div>
         </form>
       </div>

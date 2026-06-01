@@ -2,7 +2,7 @@ import { useState } from "react";
 import useCollectionManager from "../../hooks/useCollectionManager";
 import Loader from "../../components/Loader";
 
-const EMPTY = { name: "", category: "Core", level: 70, icon: "", order: 0 };
+const EMPTY = { name: "", category: "Core", level: 70, icon: "", order: 0, active: true };
 
 export default function ManageSkills() {
   const { rows, loading, saving, message, flash, save, destroy } =
@@ -23,7 +23,8 @@ export default function ManageSkills() {
   };
 
   const onDelete = async (id) => {
-    await destroy(id);
+    const s = rows.find((r) => r.id === id);
+    await destroy(id, s ? `Delete "${s.name}"? This cannot be undone.` : undefined);
     if (id === editingId) reset();
   };
 
@@ -50,16 +51,22 @@ export default function ManageSkills() {
           ) : (
             <div className="admin-list">
               {rows.map((s) => (
-                <div className={`admin-row selectable${s.id === editingId ? " selected" : ""}`} key={s.id}>
+                <div
+                  className={`admin-row selectable${s.id === editingId ? " selected" : ""}`}
+                  key={s.id}
+                  style={{ opacity: s.active === false ? 0.55 : 1 }}
+                >
                   <div className="admin-row-main" onClick={() => startEdit(s)} role="button" tabIndex={0}>
-                    <div className="admin-row-title">
-                      {s.icon && <i className={s.icon} style={{ marginRight: "0.5rem", color: "var(--teal)" }} />}
-                      {s.name}
+                    <div className="admin-row-title" style={{ display: "flex", alignItems: "center" }}>
+                      <span>
+                        {s.icon && <i className={s.icon} style={{ marginRight: "0.5rem", color: "var(--teal)" }} />}
+                        {s.name}
+                      </span>
+                      <span className={`status-pill ${s.active === false ? "inactive" : "active"}`} style={{ marginLeft: "auto" }}>
+                        {s.active === false ? "Inactive" : "Active"}
+                      </span>
                     </div>
                     <div className="admin-row-sub">{s.category}{s.category !== "Tools" ? ` · ${s.level}%` : ""}</div>
-                  </div>
-                  <div className="admin-row-actions">
-                    <button className="icon-btn danger" onClick={() => onDelete(s.id)} title="Delete"><i className="fas fa-trash" /></button>
                   </div>
                 </div>
               ))}
@@ -100,12 +107,24 @@ export default function ManageSkills() {
             <label>Display order</label>
             <input type="number" value={form.order} onChange={(e) => set("order", e.target.value)} />
           </div>
+          <div className="form-group toggle-row">
+            <label htmlFor="active" style={{ margin: 0 }}>Active (visible on site)</label>
+            <label className="switch">
+              <input id="active" type="checkbox" checked={form.active !== false} onChange={(e) => set("active", e.target.checked)} />
+              <span className="slider" />
+            </label>
+          </div>
         </div>
           <div className="form-actions">
             <button className="btn-primary btn-sm" type="submit" disabled={saving}>
               {saving ? "Saving…" : editingId ? "Update" : "Add"}
             </button>
             {editingId && <button type="button" className="btn-ghost" onClick={reset}>Cancel</button>}
+            {editingId && (
+              <button type="button" className="btn-danger" style={{ marginLeft: "auto" }} onClick={() => onDelete(editingId)}>
+                <i className="fas fa-trash" /> Delete
+              </button>
+            )}
           </div>
         </form>
       </div>

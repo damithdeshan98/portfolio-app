@@ -51,9 +51,9 @@ export function DataProvider({ children }) {
         // (created before it existed) are treated as active.
         projects: orSeed(projects, seedProjects).filter((p) => p.active !== false),
         experience: orSeed(experience, seedExperience).filter((x) => x.active !== false),
-        skills: orSeed(skills, seedSkills),
-        qualifications: orSeed(qualifications, seedQualifications),
-        certificates: orSeed(certificates, seedCertificates),
+        skills: orSeed(skills, seedSkills).filter((s) => s.active !== false),
+        qualifications: orSeed(qualifications, seedQualifications).filter((q) => q.active !== false),
+        certificates: orSeed(certificates, seedCertificates).filter((c) => c.active !== false),
       });
     } catch (err) {
       // Firestore not configured yet — keep seed defaults.
