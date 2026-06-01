@@ -1,6 +1,5 @@
 import { useState } from "react";
 import useCollectionManager from "../../hooks/useCollectionManager";
-import { uploadFile } from "../../services/firestoreService";
 import Loader from "../../components/Loader";
 
 const EMPTY = {
@@ -13,8 +12,6 @@ export default function ManageProjects() {
     useCollectionManager("projects");
   const [form, setForm] = useState(EMPTY);
   const [editingId, setEditingId] = useState(null);
-  const [file, setFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -28,27 +25,14 @@ export default function ManageProjects() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const reset = () => { setEditingId(null); setForm(EMPTY); setFile(null); };
+  const reset = () => { setEditingId(null); setForm(EMPTY); };
 
   const onSubmit = async (e) => {
     e.preventDefault();
     if (!form.title.trim()) return flash("error", "Title is required.");
 
-    let imageUrl = form.imageUrl;
-    if (file) {
-      setUploading(true);
-      try {
-        imageUrl = await uploadFile(`projects/${Date.now()}_${file.name}`, file);
-      } catch (err) {
-        setUploading(false);
-        return flash("error", "Image upload failed: " + (err?.message || ""));
-      }
-      setUploading(false);
-    }
-
     const data = {
       ...form,
-      imageUrl,
       order: Number(form.order) || 0,
       techStack: form.techStack.split(",").map((t) => t.trim()).filter(Boolean),
     };
@@ -102,8 +86,8 @@ export default function ManageProjects() {
             <input type="number" value={form.order} onChange={(e) => set("order", e.target.value)} />
           </div>
           <div className="form-group">
-            <label>Project image (optional)</label>
-            <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files[0] || null)} />
+            <label>Project image URL (optional)</label>
+            <input value={form.imageUrl} onChange={(e) => set("imageUrl", e.target.value)} placeholder="https://… or /image.jpg" />
           </div>
           <div className="form-group" style={{ flexDirection: "row", alignItems: "center", gap: "0.6rem" }}>
             <input id="featured" type="checkbox" style={{ width: "auto" }} checked={!!form.featured} onChange={(e) => set("featured", e.target.checked)} />
@@ -111,8 +95,8 @@ export default function ManageProjects() {
           </div>
         </div>
         <div className="form-actions">
-          <button className="btn-primary btn-sm" type="submit" disabled={saving || uploading}>
-            {uploading ? "Uploading…" : saving ? "Saving…" : editingId ? "Update project" : "Add project"}
+          <button className="btn-primary btn-sm" type="submit" disabled={saving}>
+            {saving ? "Saving…" : editingId ? "Update project" : "Add project"}
           </button>
           {editingId && <button type="button" className="btn-ghost" onClick={reset}>Cancel</button>}
         </div>

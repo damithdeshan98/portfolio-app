@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getOne, setDocument, uploadFile } from "../../services/firestoreService";
+import { getOne, setDocument } from "../../services/firestoreService";
 import { seedProfile } from "../../data/seed";
 import Loader from "../../components/Loader";
 
@@ -8,8 +8,6 @@ export default function ManageCV() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
-  const [cvFile, setCvFile] = useState(null);
-  const [imgFile, setImgFile] = useState(null);
 
   const flash = (type, text) => { setMessage({ type, text }); setTimeout(() => setMessage(null), 4000); };
 
@@ -37,21 +35,12 @@ export default function ManageCV() {
     try {
       const data = { ...profile };
 
-      if (cvFile) {
-        if (cvFile.type !== "application/pdf") throw new Error("CV must be a PDF file.");
-        data.cvUrl = await uploadFile("cv/cv.pdf", cvFile);
-      }
-      if (imgFile) {
-        data.profileImageUrl = await uploadFile(`profile/${Date.now()}_${imgFile.name}`, imgFile);
-      }
       // Normalise "about" + "roles" if edited as multiline text.
       if (typeof data.about === "string") data.about = data.about.split("\n\n").map((s) => s.trim()).filter(Boolean);
       if (typeof data.roles === "string") data.roles = data.roles.split("\n").map((s) => s.trim()).filter(Boolean);
 
       await setDocument("profile", "main", data);
       setProfile(data);
-      setCvFile(null);
-      setImgFile(null);
       flash("success", "Profile saved.");
     } catch (err) {
       flash("error", err?.message || "Save failed.");
@@ -70,7 +59,7 @@ export default function ManageCV() {
     <>
       <div className="admin-header">
         <h1 className="admin-title">CV &amp; Profile</h1>
-        <p className="admin-subtitle">Upload your CV and edit the profile shown across the site.</p>
+        <p className="admin-subtitle">Set your CV link and edit the profile shown across the site.</p>
       </div>
       {message && <div className={`alert alert-${message.type}`}>{message.text}</div>}
 
@@ -86,8 +75,8 @@ export default function ManageCV() {
             </p>
           )}
           <div className="form-group">
-            <label>Upload new CV (PDF)</label>
-            <input type="file" accept="application/pdf" onChange={(e) => setCvFile(e.target.files[0] || null)} />
+            <label>CV URL (PDF link)</label>
+            <input value={profile.cvUrl || ""} onChange={(e) => set("cvUrl", e.target.value)} placeholder="https://… or /resume.pdf" />
           </div>
         </div>
 
@@ -123,8 +112,8 @@ export default function ManageCV() {
               <input value={profile.tagline || ""} onChange={(e) => set("tagline", e.target.value)} />
             </div>
             <div className="form-group">
-              <label>Profile image</label>
-              <input type="file" accept="image/*" onChange={(e) => setImgFile(e.target.files[0] || null)} />
+              <label>Profile image URL</label>
+              <input value={profile.profileImageUrl || ""} onChange={(e) => set("profileImageUrl", e.target.value)} placeholder="https://… or /image.jpg" />
             </div>
             <div className="form-group full">
               <label>Hero description</label>

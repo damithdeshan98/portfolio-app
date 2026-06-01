@@ -1,6 +1,5 @@
 import { useState } from "react";
 import useCollectionManager from "../../hooks/useCollectionManager";
-import { uploadFile } from "../../services/firestoreService";
 import Loader from "../../components/Loader";
 
 const EMPTY = {
@@ -13,30 +12,16 @@ export default function ManageCertificates() {
     useCollectionManager("certificates");
   const [form, setForm] = useState(EMPTY);
   const [editingId, setEditingId] = useState(null);
-  const [file, setFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
-  const startEdit = (c) => { setEditingId(c.id); setForm({ ...EMPTY, ...c }); setFile(null); window.scrollTo({ top: 0, behavior: "smooth" }); };
-  const reset = () => { setEditingId(null); setForm(EMPTY); setFile(null); };
+  const startEdit = (c) => { setEditingId(c.id); setForm({ ...EMPTY, ...c }); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const reset = () => { setEditingId(null); setForm(EMPTY); };
 
   const onSubmit = async (e) => {
     e.preventDefault();
     if (!form.title.trim()) return flash("error", "Title is required.");
 
-    let imageUrl = form.imageUrl;
-    if (file) {
-      setUploading(true);
-      try {
-        imageUrl = await uploadFile(`certificates/${Date.now()}_${file.name}`, file);
-      } catch (err) {
-        setUploading(false);
-        return flash("error", "Image upload failed: " + (err?.message || ""));
-      }
-      setUploading(false);
-    }
-
-    const data = { ...form, imageUrl, order: Number(form.order) || 0 };
+    const data = { ...form, order: Number(form.order) || 0 };
     const ok = await save(editingId, data);
     if (ok) reset();
   };
@@ -79,13 +64,13 @@ export default function ManageCertificates() {
             <input type="number" value={form.order} onChange={(e) => set("order", e.target.value)} />
           </div>
           <div className="form-group full">
-            <label>Certificate image (optional)</label>
-            <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files[0] || null)} />
+            <label>Certificate image URL (optional)</label>
+            <input value={form.imageUrl} onChange={(e) => set("imageUrl", e.target.value)} placeholder="https://… or /image.jpg" />
           </div>
         </div>
         <div className="form-actions">
-          <button className="btn-primary btn-sm" type="submit" disabled={saving || uploading}>
-            {uploading ? "Uploading…" : saving ? "Saving…" : editingId ? "Update" : "Add"}
+          <button className="btn-primary btn-sm" type="submit" disabled={saving}>
+            {saving ? "Saving…" : editingId ? "Update" : "Add"}
           </button>
           {editingId && <button type="button" className="btn-ghost" onClick={reset}>Cancel</button>}
         </div>
