@@ -33,7 +33,11 @@ export default function StatsBand({ stats = seedStats }) {
   }, [stats]);
 
   return (
-    <div className="stats-band" ref={ref}>
+    <div
+      className="stats-band"
+      ref={ref}
+      style={{ "--stat-count": stats.length }}
+    >
       {stats.map((s, i) => (
         <div className="stat-item" key={i}>
           <div className="stat-num" data-target={s.num} data-suffix={s.suffix}>0{s.suffix}</div>

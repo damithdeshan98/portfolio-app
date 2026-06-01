@@ -270,8 +270,6 @@ export const seedCertificates = [
 ];
 
 export const seedStats = [
-  { num: 10, suffix: "+", label: "Hospitals Deployed" },
   { num: 2, suffix: "+", label: "Years Experience" },
-  { num: 6, suffix: "", label: "Projects" },
   { num: 8, suffix: "", label: "GitHub Rank LK" },
 ];

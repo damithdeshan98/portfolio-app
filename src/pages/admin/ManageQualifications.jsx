@@ -4,7 +4,7 @@ import Loader from "../../components/Loader";
 
 const EMPTY = {
   degree: "", institution: "", location: "", year: "", yearTag: "",
-  description: "", icon: "fas fa-graduation-cap", primary: false, order: 0,
+  description: "", icon: "fas fa-graduation-cap", primary: false, order: 0, active: true,
 };
 
 export default function ManageQualifications() {
@@ -14,7 +14,7 @@ export default function ManageQualifications() {
   const [editingId, setEditingId] = useState(null);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
-  const startEdit = (q) => { setEditingId(q.id); setForm({ ...EMPTY, ...q }); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const startEdit = (q) => { setEditingId(q.id); setForm({ ...EMPTY, ...q }); };
   const reset = () => { setEditingId(null); setForm(EMPTY); };
 
   const onSubmit = async (e) => {
@@ -25,19 +25,59 @@ export default function ManageQualifications() {
     if (ok) reset();
   };
 
+  const onDelete = async (id) => {
+    const q = rows.find((r) => r.id === id);
+    await destroy(id, q ? `Delete "${q.degree}"? This cannot be undone.` : undefined);
+    if (id === editingId) reset();
+  };
+
   return (
     <>
       <div className="admin-header">
         <h1 className="admin-title">Manage Qualifications</h1>
-        <p className="admin-subtitle">Education and academic background.</p>
+        <p className="admin-subtitle">Select a qualification to edit it, or add a new one.</p>
       </div>
       {message && <div className={`alert alert-${message.type}`}>{message.text}</div>}
 
-      <form className="card" onSubmit={onSubmit}>
-        <div className="card-title">
-          <i className="fas fa-graduation-cap" /> {editingId ? "Edit qualification" : "Add qualification"}
+      <div className="manage-split">
+        <div className="card manage-list-pane">
+          <div className="card-title manage-list-head">
+            <span><i className="fas fa-list" /> Qualifications ({rows.length})</span>
+            <button type="button" className="btn-primary btn-sm" onClick={reset}>
+              <i className="fas fa-plus" /> New
+            </button>
+          </div>
+          {loading ? (
+            <Loader />
+          ) : (
+            <div className="admin-list">
+              {rows.map((q) => (
+                <div
+                  className={`admin-row selectable${q.id === editingId ? " selected" : ""}`}
+                  key={q.id}
+                  style={{ opacity: q.active === false ? 0.55 : 1 }}
+                >
+                  <div className="admin-row-main" onClick={() => startEdit(q)} role="button" tabIndex={0}>
+                    <div className="admin-row-title" style={{ display: "flex", alignItems: "center" }}>
+                      <span>{q.degree} {q.primary && "★"}</span>
+                      <span className={`status-pill ${q.active === false ? "inactive" : "active"}`} style={{ marginLeft: "auto" }}>
+                        {q.active === false ? "Inactive" : "Active"}
+                      </span>
+                    </div>
+                    <div className="admin-row-sub">{q.institution} · {q.year}</div>
+                  </div>
+                </div>
+              ))}
+              {!rows.length && <p className="dash-card-desc">No qualifications yet.</p>}
+            </div>
+          )}
         </div>
-        <div className="form-grid">
+
+        <form className="card manage-form-pane" onSubmit={onSubmit}>
+          <div className="card-title">
+            <i className="fas fa-graduation-cap" /> {editingId ? "Edit qualification" : "Add qualification"}
+          </div>
+          <div className="form-grid">
           <div className="form-group full">
             <label>Degree / Title *</label>
             <input value={form.degree} onChange={(e) => set("degree", e.target.value)} />
@@ -70,40 +110,33 @@ export default function ManageQualifications() {
             <label>Display order</label>
             <input type="number" value={form.order} onChange={(e) => set("order", e.target.value)} />
           </div>
-          <div className="form-group" style={{ flexDirection: "row", alignItems: "center", gap: "0.6rem" }}>
-            <input id="primary" type="checkbox" style={{ width: "auto" }} checked={!!form.primary} onChange={(e) => set("primary", e.target.checked)} />
+          <div className="form-group toggle-row">
             <label htmlFor="primary" style={{ margin: 0 }}>Primary (wide card)</label>
+            <label className="switch">
+              <input id="primary" type="checkbox" checked={!!form.primary} onChange={(e) => set("primary", e.target.checked)} />
+              <span className="slider" />
+            </label>
+          </div>
+          <div className="form-group toggle-row">
+            <label htmlFor="active" style={{ margin: 0 }}>Active (visible on site)</label>
+            <label className="switch">
+              <input id="active" type="checkbox" checked={form.active !== false} onChange={(e) => set("active", e.target.checked)} />
+              <span className="slider" />
+            </label>
           </div>
         </div>
-        <div className="form-actions">
-          <button className="btn-primary btn-sm" type="submit" disabled={saving}>
-            {saving ? "Saving…" : editingId ? "Update" : "Add"}
-          </button>
-          {editingId && <button type="button" className="btn-ghost" onClick={reset}>Cancel</button>}
-        </div>
-      </form>
-
-      <div className="card">
-        <div className="card-title"><i className="fas fa-list" /> Qualifications ({rows.length})</div>
-        {loading ? (
-          <Loader />
-        ) : (
-          <div className="admin-list">
-            {rows.map((q) => (
-              <div className="admin-row" key={q.id}>
-                <div className="admin-row-main">
-                  <div className="admin-row-title">{q.degree} {q.primary && "★"}</div>
-                  <div className="admin-row-sub">{q.institution} · {q.year}</div>
-                </div>
-                <div className="admin-row-actions">
-                  <button className="icon-btn" onClick={() => startEdit(q)}><i className="fas fa-pen" /></button>
-                  <button className="icon-btn danger" onClick={() => destroy(q.id)}><i className="fas fa-trash" /></button>
-                </div>
-              </div>
-            ))}
-            {!rows.length && <p className="dash-card-desc">No qualifications yet.</p>}
+          <div className="form-actions">
+            <button className="btn-primary btn-sm" type="submit" disabled={saving}>
+              {saving ? "Saving…" : editingId ? "Update" : "Add"}
+            </button>
+            {editingId && <button type="button" className="btn-ghost" onClick={reset}>Cancel</button>}
+            {editingId && (
+              <button type="button" className="btn-danger" style={{ marginLeft: "auto" }} onClick={() => onDelete(editingId)}>
+                <i className="fas fa-trash" /> Delete
+              </button>
+            )}
           </div>
-        )}
+        </form>
       </div>
     </>
   );

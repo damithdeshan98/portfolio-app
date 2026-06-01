@@ -4,7 +4,7 @@ import Loader from "../../components/Loader";
 
 const EMPTY = {
   title: "", issuer: "", issueDate: "", icon: "fas fa-certificate",
-  credentialUrl: "", imageUrl: "", order: 0,
+  credentialUrl: "", imageUrl: "", order: 0, active: true,
 };
 
 export default function ManageCertificates() {
@@ -14,7 +14,7 @@ export default function ManageCertificates() {
   const [editingId, setEditingId] = useState(null);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
-  const startEdit = (c) => { setEditingId(c.id); setForm({ ...EMPTY, ...c }); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const startEdit = (c) => { setEditingId(c.id); setForm({ ...EMPTY, ...c }); };
   const reset = () => { setEditingId(null); setForm(EMPTY); };
 
   const onSubmit = async (e) => {
@@ -26,19 +26,62 @@ export default function ManageCertificates() {
     if (ok) reset();
   };
 
+  const onDelete = async (id) => {
+    const c = rows.find((r) => r.id === id);
+    await destroy(id, c ? `Delete "${c.title}"? This cannot be undone.` : undefined);
+    if (id === editingId) reset();
+  };
+
   return (
     <>
       <div className="admin-header">
         <h1 className="admin-title">Manage Certificates</h1>
-        <p className="admin-subtitle">Credentials with verification links.</p>
+        <p className="admin-subtitle">Select a certificate to edit it, or add a new one.</p>
       </div>
       {message && <div className={`alert alert-${message.type}`}>{message.text}</div>}
 
-      <form className="card" onSubmit={onSubmit}>
-        <div className="card-title">
-          <i className="fas fa-certificate" /> {editingId ? "Edit certificate" : "Add certificate"}
+      <div className="manage-split">
+        <div className="card manage-list-pane">
+          <div className="card-title manage-list-head">
+            <span><i className="fas fa-list" /> Certificates ({rows.length})</span>
+            <button type="button" className="btn-primary btn-sm" onClick={reset}>
+              <i className="fas fa-plus" /> New
+            </button>
+          </div>
+          {loading ? (
+            <Loader />
+          ) : (
+            <div className="admin-list">
+              {rows.map((c) => (
+                <div
+                  className={`admin-row selectable${c.id === editingId ? " selected" : ""}`}
+                  key={c.id}
+                  style={{ opacity: c.active === false ? 0.55 : 1 }}
+                >
+                  <div className="admin-row-main" onClick={() => startEdit(c)} role="button" tabIndex={0}>
+                    <div className="admin-row-title" style={{ display: "flex", alignItems: "center" }}>
+                      <span>
+                        {c.icon && <i className={c.icon} style={{ marginRight: "0.5rem", color: "var(--teal)" }} />}
+                        {c.title}
+                      </span>
+                      <span className={`status-pill ${c.active === false ? "inactive" : "active"}`} style={{ marginLeft: "auto" }}>
+                        {c.active === false ? "Inactive" : "Active"}
+                      </span>
+                    </div>
+                    <div className="admin-row-sub">{c.issuer}</div>
+                  </div>
+                </div>
+              ))}
+              {!rows.length && <p className="dash-card-desc">No certificates yet.</p>}
+            </div>
+          )}
         </div>
-        <div className="form-grid">
+
+        <form className="card manage-form-pane" onSubmit={onSubmit}>
+          <div className="card-title">
+            <i className="fas fa-certificate" /> {editingId ? "Edit certificate" : "Add certificate"}
+          </div>
+          <div className="form-grid">
           <div className="form-group">
             <label>Title *</label>
             <input value={form.title} onChange={(e) => set("title", e.target.value)} />
@@ -67,39 +110,26 @@ export default function ManageCertificates() {
             <label>Certificate image URL (optional)</label>
             <input value={form.imageUrl} onChange={(e) => set("imageUrl", e.target.value)} placeholder="https://… or /image.jpg" />
           </div>
-        </div>
-        <div className="form-actions">
-          <button className="btn-primary btn-sm" type="submit" disabled={saving}>
-            {saving ? "Saving…" : editingId ? "Update" : "Add"}
-          </button>
-          {editingId && <button type="button" className="btn-ghost" onClick={reset}>Cancel</button>}
-        </div>
-      </form>
-
-      <div className="card">
-        <div className="card-title"><i className="fas fa-list" /> Certificates ({rows.length})</div>
-        {loading ? (
-          <Loader />
-        ) : (
-          <div className="admin-list">
-            {rows.map((c) => (
-              <div className="admin-row" key={c.id}>
-                <div className="admin-row-main">
-                  <div className="admin-row-title">
-                    {c.icon && <i className={c.icon} style={{ marginRight: "0.5rem", color: "var(--teal)" }} />}
-                    {c.title}
-                  </div>
-                  <div className="admin-row-sub">{c.issuer}</div>
-                </div>
-                <div className="admin-row-actions">
-                  <button className="icon-btn" onClick={() => startEdit(c)}><i className="fas fa-pen" /></button>
-                  <button className="icon-btn danger" onClick={() => destroy(c.id)}><i className="fas fa-trash" /></button>
-                </div>
-              </div>
-            ))}
-            {!rows.length && <p className="dash-card-desc">No certificates yet.</p>}
+          <div className="form-group toggle-row">
+            <label htmlFor="active" style={{ margin: 0 }}>Active (visible on site)</label>
+            <label className="switch">
+              <input id="active" type="checkbox" checked={form.active !== false} onChange={(e) => set("active", e.target.checked)} />
+              <span className="slider" />
+            </label>
           </div>
-        )}
+        </div>
+          <div className="form-actions">
+            <button className="btn-primary btn-sm" type="submit" disabled={saving}>
+              {saving ? "Saving…" : editingId ? "Update" : "Add"}
+            </button>
+            {editingId && <button type="button" className="btn-ghost" onClick={reset}>Cancel</button>}
+            {editingId && (
+              <button type="button" className="btn-danger" style={{ marginLeft: "auto" }} onClick={() => onDelete(editingId)}>
+                <i className="fas fa-trash" /> Delete
+              </button>
+            )}
+          </div>
+        </form>
       </div>
     </>
   );

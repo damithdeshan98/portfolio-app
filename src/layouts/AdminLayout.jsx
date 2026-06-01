@@ -10,6 +10,7 @@ const NAV = [
   { to: "/admin/qualifications", icon: "fas fa-graduation-cap", label: "Qualifications" },
   { to: "/admin/certificates", icon: "fas fa-certificate", label: "Certificates" },
   { to: "/admin/cv", icon: "fas fa-id-card", label: "CV & Profile" },
+  { to: "/admin/visitors", icon: "fas fa-users-viewfinder", label: "Visitors" },
 ];
 
 export default function AdminLayout() {

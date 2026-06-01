@@ -4,7 +4,7 @@ import Loader from "../../components/Loader";
 
 const EMPTY = {
   role: "", company: "", location: "", startDate: "", endDate: "",
-  period: "", bullets: "", order: 0,
+  period: "", bullets: "", order: 0, active: true,
 };
 
 export default function ManageExperience() {
@@ -22,7 +22,6 @@ export default function ManageExperience() {
       ...x,
       bullets: Array.isArray(x.bullets) ? x.bullets.join("\n") : x.bullets || "",
     });
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const reset = () => { setEditingId(null); setForm(EMPTY); };
@@ -39,19 +38,59 @@ export default function ManageExperience() {
     if (ok) reset();
   };
 
+  const onDelete = async (id) => {
+    const x = rows.find((r) => r.id === id);
+    await destroy(id, x ? `Delete "${x.role}"? This cannot be undone.` : undefined);
+    if (id === editingId) reset();
+  };
+
   return (
     <>
       <div className="admin-header">
         <h1 className="admin-title">Manage Experience</h1>
-        <p className="admin-subtitle">Your professional work history timeline.</p>
+        <p className="admin-subtitle">Select an entry to edit it, or add a new one.</p>
       </div>
       {message && <div className={`alert alert-${message.type}`}>{message.text}</div>}
 
-      <form className="card" onSubmit={onSubmit}>
-        <div className="card-title">
-          <i className="fas fa-briefcase" /> {editingId ? "Edit experience" : "Add experience"}
+      <div className="manage-split">
+        <div className="card manage-list-pane">
+          <div className="card-title manage-list-head">
+            <span><i className="fas fa-list" /> Entries ({rows.length})</span>
+            <button type="button" className="btn-primary btn-sm" onClick={reset}>
+              <i className="fas fa-plus" /> New
+            </button>
+          </div>
+          {loading ? (
+            <Loader />
+          ) : (
+            <div className="admin-list">
+              {rows.map((x) => (
+                <div
+                  className={`admin-row selectable${x.id === editingId ? " selected" : ""}`}
+                  key={x.id}
+                  style={{ opacity: x.active === false ? 0.55 : 1 }}
+                >
+                  <div className="admin-row-main" onClick={() => startEdit(x)} role="button" tabIndex={0}>
+                    <div className="admin-row-title" style={{ display: "flex", alignItems: "center" }}>
+                      <span>{x.role}</span>
+                      <span className={`status-pill ${x.active === false ? "inactive" : "active"}`} style={{ marginLeft: "auto" }}>
+                        {x.active === false ? "Inactive" : "Active"}
+                      </span>
+                    </div>
+                    <div className="admin-row-sub">{x.company} · {x.period || `${x.startDate} — ${x.endDate}`}</div>
+                  </div>
+                </div>
+              ))}
+              {!rows.length && <p className="dash-card-desc">No experience entries yet.</p>}
+            </div>
+          )}
         </div>
-        <div className="form-grid">
+
+        <form className="card manage-form-pane" onSubmit={onSubmit}>
+          <div className="card-title">
+            <i className="fas fa-briefcase" /> {editingId ? "Edit experience" : "Add experience"}
+          </div>
+          <div className="form-grid">
           <div className="form-group">
             <label>Role *</label>
             <input value={form.role} onChange={(e) => set("role", e.target.value)} />
@@ -84,36 +123,26 @@ export default function ManageExperience() {
             <label>Display order</label>
             <input type="number" value={form.order} onChange={(e) => set("order", e.target.value)} />
           </div>
-        </div>
-        <div className="form-actions">
-          <button className="btn-primary btn-sm" type="submit" disabled={saving}>
-            {saving ? "Saving…" : editingId ? "Update" : "Add"}
-          </button>
-          {editingId && <button type="button" className="btn-ghost" onClick={reset}>Cancel</button>}
-        </div>
-      </form>
-
-      <div className="card">
-        <div className="card-title"><i className="fas fa-list" /> Entries ({rows.length})</div>
-        {loading ? (
-          <Loader />
-        ) : (
-          <div className="admin-list">
-            {rows.map((x) => (
-              <div className="admin-row" key={x.id}>
-                <div className="admin-row-main">
-                  <div className="admin-row-title">{x.role}</div>
-                  <div className="admin-row-sub">{x.company} · {x.period || `${x.startDate} — ${x.endDate}`}</div>
-                </div>
-                <div className="admin-row-actions">
-                  <button className="icon-btn" onClick={() => startEdit(x)}><i className="fas fa-pen" /></button>
-                  <button className="icon-btn danger" onClick={() => destroy(x.id)}><i className="fas fa-trash" /></button>
-                </div>
-              </div>
-            ))}
-            {!rows.length && <p className="dash-card-desc">No experience entries yet.</p>}
+          <div className="form-group toggle-row">
+            <label htmlFor="active" style={{ margin: 0 }}>Active (visible on site)</label>
+            <label className="switch">
+              <input id="active" type="checkbox" checked={form.active !== false} onChange={(e) => set("active", e.target.checked)} />
+              <span className="slider" />
+            </label>
           </div>
-        )}
+        </div>
+          <div className="form-actions">
+            <button className="btn-primary btn-sm" type="submit" disabled={saving}>
+              {saving ? "Saving…" : editingId ? "Update" : "Add"}
+            </button>
+            {editingId && <button type="button" className="btn-ghost" onClick={reset}>Cancel</button>}
+            {editingId && (
+              <button type="button" className="btn-danger" style={{ marginLeft: "auto" }} onClick={() => onDelete(editingId)}>
+                <i className="fas fa-trash" /> Delete
+              </button>
+            )}
+          </div>
+        </form>
       </div>
     </>
   );

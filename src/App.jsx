@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { DataProvider } from "./context/DataContext";
+import { ConfirmProvider } from "./context/ConfirmContext";
 
 import PublicLayout from "./layouts/PublicLayout";
 import Home from "./pages/public/Home";
@@ -20,6 +21,7 @@ import ManageSkills from "./pages/admin/ManageSkills";
 import ManageQualifications from "./pages/admin/ManageQualifications";
 import ManageCertificates from "./pages/admin/ManageCertificates";
 import ManageCV from "./pages/admin/ManageCV";
+import Visitors from "./pages/admin/Visitors";
 
 export default function App() {
   return (
@@ -47,7 +49,9 @@ export default function App() {
         path="/admin"
         element={
           <ProtectedRoute>
-            <AdminLayout />
+            <ConfirmProvider>
+              <AdminLayout />
+            </ConfirmProvider>
           </ProtectedRoute>
         }
       >
@@ -59,6 +63,7 @@ export default function App() {
         <Route path="qualifications" element={<ManageQualifications />} />
         <Route path="certificates" element={<ManageCertificates />} />
         <Route path="cv" element={<ManageCV />} />
+        <Route path="visitors" element={<Visitors />} />
       </Route>
 
       {/* ---------- Fallback ---------- */}
