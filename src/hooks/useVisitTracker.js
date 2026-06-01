@@ -19,35 +19,43 @@ async function fetchIp() {
 }
 
 /**
- * Logs a visitor session to Firestore: IP + arrival time on mount, then close
- * time + duration on a heartbeat and when the tab is hidden/closed. Mounted
- * once at the public layout level.
+ * Logs a visitor session to Firestore: IP + arrival time on mount, then a
+ * close time + duration that is refreshed on a heartbeat and whenever the tab
+ * is hidden or closed. Mounted once at the public layout level.
  */
 export default function useVisitTracker() {
-  const started = useRef(false);
+  // Refs persist across React 18 StrictMode's double-invoke so we create the
+  // visit only once while still re-attaching listeners on every effect run.
+  const idRef = useRef(null);
+  const startRef = useRef(Date.now());
+  const creatingRef = useRef(false);
 
   useEffect(() => {
-    // Guard against React 18 StrictMode double-invoking the effect in dev.
-    if (started.current) return;
-    started.current = true;
-
-    let visitId = null;
-    let startMs = Date.now();
-
     // Resume an existing session if this tab already logged one.
-    const stored = sessionStorage.getItem(KEY);
-    if (stored) {
-      try {
-        const v = JSON.parse(stored);
-        visitId = v.id;
-        startMs = v.start || startMs;
-      } catch {
-        /* corrupt value — start fresh */
+    if (!idRef.current) {
+      const stored = sessionStorage.getItem(KEY);
+      if (stored) {
+        try {
+          const v = JSON.parse(stored);
+          idRef.current = v.id;
+          startRef.current = v.start || startRef.current;
+        } catch {
+          /* corrupt value — start fresh */
+        }
       }
     }
 
+    // Write the current close time + elapsed seconds. Safe to call repeatedly;
+    // the latest values simply overwrite the previous ones.
+    const flush = () => {
+      if (!idRef.current) return;
+      const durationSec = Math.round((Date.now() - startRef.current) / 1000);
+      closeVisit(idRef.current, durationSec).catch(() => {});
+    };
+
     const begin = async () => {
-      if (visitId) return; // already logging this session
+      if (idRef.current || creatingRef.current) return;
+      creatingRef.current = true;
       const ip = await fetchIp();
       try {
         const id = await logVisit({
@@ -56,18 +64,16 @@ export default function useVisitTracker() {
           path: window.location.pathname,
           referrer: document.referrer || "direct",
         });
-        visitId = id;
-        startMs = Date.now();
-        sessionStorage.setItem(KEY, JSON.stringify({ id, start: startMs }));
+        idRef.current = id;
+        startRef.current = Date.now();
+        sessionStorage.setItem(KEY, JSON.stringify({ id, start: startRef.current }));
+        // Stamp an initial close time straight away so the field is never empty
+        // even if the visitor leaves before the first heartbeat.
+        flush();
       } catch {
-        /* writes may be blocked by rules or an extension — ignore */
+        // Writes may be blocked by rules or an extension — allow a retry later.
+        creatingRef.current = false;
       }
-    };
-
-    const flush = () => {
-      if (!visitId) return;
-      const durationSec = Math.round((Date.now() - startMs) / 1000);
-      closeVisit(visitId, durationSec).catch(() => {});
     };
 
     begin();
@@ -75,15 +81,18 @@ export default function useVisitTracker() {
     const onVisibility = () => {
       if (document.visibilityState === "hidden") flush();
     };
-    const heartbeat = setInterval(flush, 30000);
+    // Frequent enough that an abrupt close still leaves a recent close time.
+    const heartbeat = setInterval(flush, 15000);
 
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("pagehide", flush);
+    window.addEventListener("beforeunload", flush);
 
     return () => {
       clearInterval(heartbeat);
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("pagehide", flush);
+      window.removeEventListener("beforeunload", flush);
       flush();
     };
   }, []);

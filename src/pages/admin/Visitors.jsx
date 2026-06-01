@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { subscribeVisits, pruneOldVisits, remove } from "../../services/firestoreService";
-import { useConfirm } from "../../context/ConfirmContext";
+import { subscribeVisits, pruneOldVisits } from "../../services/firestoreService";
 import Loader from "../../components/Loader";
 
 // Firestore Timestamp | null -> "1 Jun 2026, 14:32:05"
@@ -27,7 +26,6 @@ function duration(sec) {
 export default function Visitors() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
-  const confirm = useConfirm();
 
   useEffect(() => {
     // Auto-clean: drop anything older than 3 months each time the log is opened.
@@ -38,17 +36,6 @@ export default function Visitors() {
     );
     return () => unsub && unsub();
   }, []);
-
-  const onDelete = async (v) => {
-    const ok = await confirm({
-      title: "Delete visit",
-      message: `Delete the visit from ${v.ip || "unknown"}? This cannot be undone.`,
-      confirmLabel: "Delete",
-      tone: "danger",
-    });
-    if (!ok) return;
-    try { await remove("visits", v.id); } catch { /* ignore */ }
-  };
 
   return (
     <>
@@ -75,24 +62,15 @@ export default function Visitors() {
                   <th>Visit At</th>
                   <th>Close At</th>
                   <th>Duration</th>
-                  <th />
                 </tr>
               </thead>
               <tbody>
                 {rows.map((v) => (
                   <tr key={v.id}>
-                    <td className="mono">
-                      {v.ip || "unknown"}
-                      {!v.closeAt && <span className="status-pill active" style={{ marginLeft: "0.5rem" }}>Live</span>}
-                    </td>
+                    <td className="mono">{v.ip || "unknown"}</td>
                     <td>{fmt(v.visitAt)}</td>
                     <td>{fmt(v.closeAt)}</td>
                     <td className="mono">{duration(v.durationSec)}</td>
-                    <td style={{ textAlign: "right" }}>
-                      <button type="button" className="icon-btn danger" title="Delete" onClick={() => onDelete(v)}>
-                        <i className="fas fa-trash" />
-                      </button>
-                    </td>
                   </tr>
                 ))}
               </tbody>
