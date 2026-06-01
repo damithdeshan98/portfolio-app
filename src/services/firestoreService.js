@@ -10,7 +10,9 @@ import {
   deleteDoc,
   setDoc,
   query,
+  where,
   orderBy,
+  writeBatch,
   serverTimestamp,
 } from "firebase/firestore";
 import {
@@ -81,6 +83,70 @@ export function subscribeOne(collectionName, id, onData, onError) {
     (snap) => onData(snap.exists() ? { id: snap.id, ...snap.data() } : null),
     onError
   );
+}
+
+/* ------------------------------------------------------------------ *
+ * Visitor tracking
+ * ------------------------------------------------------------------ */
+
+// Record a new visit when someone opens the public site. Returns the doc id
+// so the same visit can later be stamped with a close time + duration.
+export async function logVisit(data) {
+  const docRef = await addDoc(collection(db, "visits"), {
+    ...data,
+    visitAt: serverTimestamp(),
+  });
+  return docRef.id;
+}
+
+// Stamp a visit with the moment the tab was closed/hidden and the elapsed
+// seconds. Called repeatedly (heartbeat + on unload) so the latest values win.
+export async function closeVisit(id, durationSec) {
+  await updateDoc(doc(db, "visits", id), {
+    closeAt: serverTimestamp(),
+    durationSec,
+  });
+}
+
+// We only keep the most recent VISIT_MONTHS of history; older visits are
+// pruned and never shown.
+const VISIT_MONTHS = 3;
+
+// Date this many months in the past — anything before it is "expired".
+function visitCutoff(monthsBack = VISIT_MONTHS) {
+  const d = new Date();
+  d.setMonth(d.getMonth() - monthsBack);
+  return d;
+}
+
+// Subscribe to the visit log for the admin panel: last 3 months, newest first.
+export function subscribeVisits(onData, onError) {
+  const q = query(
+    collection(db, "visits"),
+    where("visitAt", ">=", visitCutoff()),
+    orderBy("visitAt", "desc")
+  );
+  return onSnapshot(
+    q,
+    (snap) => onData(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+    onError
+  );
+}
+
+// Permanently delete visits older than 3 months. Run from the admin panel
+// (delete is admin-only) so the collection stays trimmed automatically.
+// Returns the number removed.
+export async function pruneOldVisits(monthsBack = VISIT_MONTHS) {
+  const q = query(collection(db, "visits"), where("visitAt", "<", visitCutoff(monthsBack)));
+  const snap = await getDocs(q);
+  let removed = 0;
+  // Batches cap at 500 ops, so delete in chunks.
+  for (let i = 0; i < snap.docs.length; i += 450) {
+    const batch = writeBatch(db);
+    snap.docs.slice(i, i + 450).forEach((d) => { batch.delete(d.ref); removed++; });
+    await batch.commit();
+  }
+  return removed;
 }
 
 // Get a single document by id.
