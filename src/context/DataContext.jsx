@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { getAll, getOne } from "../services/firestoreService";
+import { subscribeAll, subscribeOne } from "../services/firestoreService";
 import {
   seedProfile,
   seedProjects,
@@ -32,43 +32,32 @@ export function DataProvider({ children }) {
   // the first paint on the network. Live Firestore data swaps in when it
   // arrives; if the request is slow, fails, or is blocked by a browser
   // extension (ERR_BLOCKED_BY_CLIENT), the seed content simply stays.
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
 
-  const load = async () => {
-    try {
-      const [profile, projects, experience, skills, qualifications, certificates] =
-        await Promise.all([
-          getOne("profile", "main"),
-          getAll("projects"),
-          getAll("experience"),
-          getAll("skills"),
-          getAll("qualifications"),
-          getAll("certificates"),
-        ]);
-      setData({
-        profile: profile || seedProfile,
-        // Public site shows active projects only; records without the flag
-        // (created before it existed) are treated as active.
-        projects: orSeed(projects, seedProjects).filter((p) => p.active !== false),
-        experience: orSeed(experience, seedExperience).filter((x) => x.active !== false),
-        skills: orSeed(skills, seedSkills).filter((s) => s.active !== false),
-        qualifications: orSeed(qualifications, seedQualifications).filter((q) => q.active !== false),
-        certificates: orSeed(certificates, seedCertificates).filter((c) => c.active !== false),
-      });
-    } catch (err) {
-      // Firestore not configured yet — keep seed defaults.
-      console.warn("Falling back to seed data:", err?.message || err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Public site shows active records only; rows without the flag (created
+  // before it existed) are treated as active.
+  const isActive = (r) => r.active !== false;
 
+  // Subscribe to Firestore in real time so any admin change — including
+  // toggling a record active/inactive — is reflected on the public site
+  // immediately, without a manual reload.
   useEffect(() => {
-    load();
+    const patch = (key, value) => setData((d) => ({ ...d, [key]: value }));
+    const warn = (err) => console.warn("Falling back to seed data:", err?.message || err);
+
+    const unsubs = [
+      subscribeOne("profile", "main", (p) => patch("profile", p || seedProfile), warn),
+      subscribeAll("projects", "order", (r) => patch("projects", orSeed(r, seedProjects).filter(isActive)), warn),
+      subscribeAll("experience", "order", (r) => patch("experience", orSeed(r, seedExperience).filter(isActive)), warn),
+      subscribeAll("skills", "order", (r) => patch("skills", orSeed(r, seedSkills).filter(isActive)), warn),
+      subscribeAll("qualifications", "order", (r) => patch("qualifications", orSeed(r, seedQualifications).filter(isActive)), warn),
+      subscribeAll("certificates", "order", (r) => patch("certificates", orSeed(r, seedCertificates).filter(isActive)), warn),
+    ];
+    return () => unsubs.forEach((u) => u && u());
   }, []);
 
   return (
-    <DataContext.Provider value={{ ...data, loading, reload: load }}>
+    <DataContext.Provider value={{ ...data, loading }}>
       {children}
     </DataContext.Provider>
   );

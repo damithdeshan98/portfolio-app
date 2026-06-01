@@ -4,6 +4,7 @@ import {
   getDocs,
   getDocsFromCache,
   getDoc,
+  onSnapshot,
   addDoc,
   updateDoc,
   deleteDoc,
@@ -54,6 +55,32 @@ export async function getAllFromCache(collectionName, orderField = "order") {
     // Nothing in cache yet (first ever load).
     return null;
   }
+}
+
+// Subscribe to a collection in real time. Calls onData with the rows on every
+// change (admin edits, active toggles, etc.) and returns an unsubscribe fn.
+export function subscribeAll(collectionName, orderField = "order", onData, onError) {
+  const colRef = collection(db, collectionName);
+  let q;
+  try {
+    q = query(colRef, orderBy(orderField));
+  } catch {
+    q = colRef;
+  }
+  return onSnapshot(
+    q,
+    (snap) => onData(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+    onError
+  );
+}
+
+// Subscribe to a single document in real time. Returns an unsubscribe fn.
+export function subscribeOne(collectionName, id, onData, onError) {
+  return onSnapshot(
+    doc(db, collectionName, id),
+    (snap) => onData(snap.exists() ? { id: snap.id, ...snap.data() } : null),
+    onError
+  );
 }
 
 // Get a single document by id.
