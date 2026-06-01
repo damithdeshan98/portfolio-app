@@ -17,6 +17,7 @@ const CARDS = [
   { to: "/admin/qualifications", icon: "fas fa-graduation-cap", title: "Qualifications", desc: "Education and academic background." },
   { to: "/admin/certificates", icon: "fas fa-certificate", title: "Certificates", desc: "Credentials and verification links." },
   { to: "/admin/cv", icon: "fas fa-id-card", title: "CV & Profile", desc: "Upload your CV and edit profile details." },
+  { to: "/admin/visitors", icon: "fas fa-users-viewfinder", title: "Visitors", desc: "Track site visits: IP, time and duration." },
 ];
 
 export default function Dashboard() {
