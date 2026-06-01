@@ -4,7 +4,7 @@ import Loader from "../../components/Loader";
 
 const EMPTY = {
   role: "", company: "", location: "", startDate: "", endDate: "",
-  period: "", bullets: "", order: 0,
+  period: "", bullets: "", order: 0, active: true,
 };
 
 export default function ManageExperience() {
@@ -39,7 +39,8 @@ export default function ManageExperience() {
   };
 
   const onDelete = async (id) => {
-    await destroy(id);
+    const x = rows.find((r) => r.id === id);
+    await destroy(id, x ? `Delete "${x.role}"? This cannot be undone.` : undefined);
     if (id === editingId) reset();
   };
 
@@ -64,13 +65,19 @@ export default function ManageExperience() {
           ) : (
             <div className="admin-list">
               {rows.map((x) => (
-                <div className={`admin-row selectable${x.id === editingId ? " selected" : ""}`} key={x.id}>
+                <div
+                  className={`admin-row selectable${x.id === editingId ? " selected" : ""}`}
+                  key={x.id}
+                  style={{ opacity: x.active === false ? 0.55 : 1 }}
+                >
                   <div className="admin-row-main" onClick={() => startEdit(x)} role="button" tabIndex={0}>
-                    <div className="admin-row-title">{x.role}</div>
+                    <div className="admin-row-title" style={{ display: "flex", alignItems: "center" }}>
+                      <span>{x.role}</span>
+                      <span className={`status-pill ${x.active === false ? "inactive" : "active"}`} style={{ marginLeft: "auto" }}>
+                        {x.active === false ? "Inactive" : "Active"}
+                      </span>
+                    </div>
                     <div className="admin-row-sub">{x.company} · {x.period || `${x.startDate} — ${x.endDate}`}</div>
-                  </div>
-                  <div className="admin-row-actions">
-                    <button className="icon-btn danger" onClick={() => onDelete(x.id)} title="Delete"><i className="fas fa-trash" /></button>
                   </div>
                 </div>
               ))}
@@ -116,12 +123,24 @@ export default function ManageExperience() {
             <label>Display order</label>
             <input type="number" value={form.order} onChange={(e) => set("order", e.target.value)} />
           </div>
+          <div className="form-group toggle-row">
+            <label htmlFor="active" style={{ margin: 0 }}>Active (visible on site)</label>
+            <label className="switch">
+              <input id="active" type="checkbox" checked={form.active !== false} onChange={(e) => set("active", e.target.checked)} />
+              <span className="slider" />
+            </label>
+          </div>
         </div>
           <div className="form-actions">
             <button className="btn-primary btn-sm" type="submit" disabled={saving}>
               {saving ? "Saving…" : editingId ? "Update" : "Add"}
             </button>
             {editingId && <button type="button" className="btn-ghost" onClick={reset}>Cancel</button>}
+            {editingId && (
+              <button type="button" className="btn-danger" style={{ marginLeft: "auto" }} onClick={() => onDelete(editingId)}>
+                <i className="fas fa-trash" /> Delete
+              </button>
+            )}
           </div>
         </form>
       </div>

@@ -50,7 +50,7 @@ export function DataProvider({ children }) {
         // Public site shows active projects only; records without the flag
         // (created before it existed) are treated as active.
         projects: orSeed(projects, seedProjects).filter((p) => p.active !== false),
-        experience: orSeed(experience, seedExperience),
+        experience: orSeed(experience, seedExperience).filter((x) => x.active !== false),
         skills: orSeed(skills, seedSkills),
         qualifications: orSeed(qualifications, seedQualifications),
         certificates: orSeed(certificates, seedCertificates),
