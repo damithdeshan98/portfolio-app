@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { getAll, add, update, remove } from "../services/firestoreService";
+import { getAll, getAllFromCache, add, update, remove } from "../services/firestoreService";
+import { useConfirm } from "../context/ConfirmContext";
 
 /**
  * Generic list+CRUD state for an admin "Manage X" page.
@@ -10,6 +11,7 @@ export default function useCollectionManager(collectionName) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null); // { type: 'success'|'error', text }
+  const confirm = useConfirm();
 
   const flash = (type, text) => {
     setMessage({ type, text });
@@ -17,7 +19,15 @@ export default function useCollectionManager(collectionName) {
   };
 
   const load = useCallback(async () => {
-    setLoading(true);
+    // Show locally cached rows immediately so the list paints without waiting
+    // on the network, then refresh from the server in the background.
+    const cached = await getAllFromCache(collectionName);
+    if (cached) {
+      setRows(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     try {
       setRows(await getAll(collectionName));
     } catch (err) {
@@ -49,8 +59,14 @@ export default function useCollectionManager(collectionName) {
     }
   };
 
-  const destroy = async (id) => {
-    if (!window.confirm("Delete this item? This cannot be undone.")) return;
+  const destroy = async (id, confirmText) => {
+    const ok = await confirm({
+      title: "Delete item",
+      message: confirmText || "Delete this item? This cannot be undone.",
+      confirmLabel: "Delete",
+      tone: "danger",
+    });
+    if (!ok) return;
     try {
       await remove(collectionName, id);
       flash("success", "Deleted.");
