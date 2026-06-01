@@ -47,7 +47,9 @@ export function DataProvider({ children }) {
         ]);
       setData({
         profile: profile || seedProfile,
-        projects: orSeed(projects, seedProjects),
+        // Public site shows active projects only; records without the flag
+        // (created before it existed) are treated as active.
+        projects: orSeed(projects, seedProjects).filter((p) => p.active !== false),
         experience: orSeed(experience, seedExperience),
         skills: orSeed(skills, seedSkills),
         qualifications: orSeed(qualifications, seedQualifications),
