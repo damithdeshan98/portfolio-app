@@ -28,10 +28,13 @@ export function DataProvider({ children }) {
     qualifications: seedQualifications,
     certificates: seedCertificates,
   });
-  const [loading, setLoading] = useState(true);
+  // Seed data is already in state, so render immediately rather than blocking
+  // the first paint on the network. Live Firestore data swaps in when it
+  // arrives; if the request is slow, fails, or is blocked by a browser
+  // extension (ERR_BLOCKED_BY_CLIENT), the seed content simply stays.
+  const [loading, setLoading] = useState(false);
 
   const load = async () => {
-    setLoading(true);
     try {
       const [profile, projects, experience, skills, qualifications, certificates] =
         await Promise.all([
