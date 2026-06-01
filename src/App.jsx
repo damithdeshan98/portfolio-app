@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { DataProvider } from "./context/DataContext";
+import { ConfirmProvider } from "./context/ConfirmContext";
 
 import PublicLayout from "./layouts/PublicLayout";
 import Home from "./pages/public/Home";
@@ -47,7 +48,9 @@ export default function App() {
         path="/admin"
         element={
           <ProtectedRoute>
-            <AdminLayout />
+            <ConfirmProvider>
+              <AdminLayout />
+            </ConfirmProvider>
           </ProtectedRoute>
         }
       >
